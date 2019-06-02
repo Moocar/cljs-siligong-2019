@@ -1,0 +1,8 @@
+resources/public/js/compiled
+target
+/figwheel_server.log
+/.lein-repl-history
+/pom.xml
+/.nrepl-port
+resources/target
+resources/public/js/highlight.pack.js
