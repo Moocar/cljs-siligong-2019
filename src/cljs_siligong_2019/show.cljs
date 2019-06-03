@@ -10,6 +10,33 @@
 
 ;; with cursor in this file, run M-x cider-jack-in-clojurescript
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn timed [f]
+  (let [t0 (.now js/performance)]
+    (f)
+    (- (.now js/performance) t0)))
+
+(defn copy-100 [n]
+  (let [a (atom (vec (range n)))]
+    (doseq [i (range 100)]
+      (swap! a conj (+ n i)))))
+
+(defn run-test [m k]
+  (map (fn [n] (timed #(copy-100 n)))
+       (take k (iterate (fn [x] (* x m)) 10))))
+
+;; js copy 5, 10
+;; [ 0, 0, 0, 1, 8, 50, 298, 1419, 5547, 29524 ]
+
+;; js mutate 5 10
+;; [ 0, 0, 0, 1, 1, 2, 5, 13, 41, 214 ]
+
+;; cljs copy 5 10
+;; [1 1 1 1 2 3 9 20 104 523]
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defonce state
   (reagent/atom
    {:page 0
@@ -116,11 +143,19 @@
     [:br]
     block2]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; The show
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defshow myshow
   state
   style
 
-  (jobim/title "Intro to Clojurescript" "Anthony Marcar")
+  (jobim/title
+   "Clojurescript for javascript ppl"
+   [:div
+    [:p "Anthony Marcar"]
+    [:p "@moocar"]])
 
   (my-bullets
    "Clojure"
@@ -212,5 +247,84 @@
     (clj-block ['(def s1 #{1 3 5 6})])
     (clj-block ['(def s2 #{5 6 8 9})])
     (clj-line '(set/union s1 s2) '#{1 6 3 5 9 8})
-    (clj-line '(set/intersection s1 s2) '#{6 5})]
-   {:list-style-type "none"}))
+    (clj-line '(set/intersection s1 s2) '#{6 5})
+    (clj-line '(#{1 2} 1) '1)
+    (clj-line '(filter #{1 2} [0 1 2 3]) '(1 2))]
+   {:list-style-type "none"})
+
+  (my-bullets
+   "Immutability"
+   ["Everything is a value"
+    "Calling functions is safe"
+    "Testing is more deterministic (pure functions)"
+    "Another routine can't change your data"
+    "So how do I get shit done?"]
+   {})
+
+  (my-bullets
+   "Atoms (like Redux)"
+   [(clj-line '(def a (atom 1)))
+    (clj-line '(reset! a 5) '5)
+    (clj-line '@a '5)
+    (clj-line '(swap! a inc) '6)
+    (clj-line '@a '6)
+    (clj-line '(swap! a (fn [x] (* x x))) '36)]
+   {})
+
+  (my-bullets
+   "Isn't Immutability slow?"
+   ["No"
+    "Because Shared-persistent datastructures"]
+   {:list-style-type "none"})
+
+  (jobim/captioned-img
+   "/img/clojure-persistent-data-structures-sharing.png"
+   "https://practicalli.github.io/")
+
+  (jobim/code* "js"
+   ["function mutate100(n) {"
+    "  var a = [...Array(n).keys()]"
+    "  for (var i = 0; i < 100; i++) {"
+    "    a.push(n + i)"
+    "  }"
+    "}"])
+
+  (jobim/pseudo-clj
+   40
+   (defn copy-100 [n]
+     (let [a (atom (vec (range n)))]
+       (doseq [i (range 100)]
+         (swap! a conj (+ n i))))))
+
+  (jobim/captioned-img
+   "/img/js-vs-cljs-vector-performance.svg"
+   "")
+
+  (jobim/code*
+   "js"
+   ["function copy100(n) {"
+    "  var a = [...Array(n).keys()]"
+    "  for (var i = 0; i < 100; i++) {"
+    "    a = [...a, n + i]"
+    "  }"
+    "}"])
+
+  (jobim/captioned-img
+   "/img/js-vs-cljs-vector-performance-with-js-copy.svg"
+   "")
+
+  (my-bullets
+   "Equality"
+   ["42 === 42, \"foo\" === \"foo\" "
+    [:s "{a: 1} === {a: 1}"]
+    (clj-line '(= {:a 1} {:a 2}) 'true)]
+   {})
+
+  (jobim/pseudo-clj
+   40
+   (def my-key
+     {:customerId "c1"
+      :orderId    "o1"})
+   (def m {my-key "someVal"})
+   (get m my-key))
+)
