@@ -8,7 +8,7 @@ Code for the presentation I gave at [Wollongong's Siligong Valley JS meetup](htt
 - [reagent](https://reagent-project.github.io/) for custom slides
 - [figwheel](https://figwheel.org/) for interactive cljs development
 
-## To Run
+## To Run (on Mac)
 
 First, clone this repo and cd into it. Now
 
@@ -58,4 +58,4 @@ You should see the result `3`!
 
 ### Live reloading
 
-The entire code for the talk is in `src/cljs_siligong_2019/show.cljs`. Look through it and try changing the text of slome slides and notice that you don't have to reload to see the changes, and that the state of the application is kept. This is the magic of figwheel.
+The entire code for the talk is in `src/cljs_siligong_2019/show.cljs`. Look through it and try changing the text of some slides and notice that you don't have to reload to see the changes, and that the state of the application is kept. This is the magic of figwheel.
