@@ -18,7 +18,8 @@
                    :source-paths ["cljs_src"]
                    :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}}}
 
-  :plugins [[lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
+  :plugins [[lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]
+            [lein-figwheel "0.5.18"]]
 
   :source-paths ["src"]
 
