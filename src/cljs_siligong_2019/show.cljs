@@ -8,20 +8,6 @@
             [cljs.core.async :refer [put! chan >! <!]]
             [jobim.protocols :as protocols]))
 
-;; setup for talk
-
-;; with cursor in this file, run M-x cider-jack-in-clojurescript
-
-;; open http://localhost:3449 in chrome
-
-;; maximize chrome
-
-;; bump font size on this and repl
-
-;; full screen emacs
-
-;; navigate to clj-block
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; immutable performance
 
