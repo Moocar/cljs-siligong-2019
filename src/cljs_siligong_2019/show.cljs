@@ -8,9 +8,22 @@
             [cljs.core.async :refer [put! chan >! <!]]
             [jobim.protocols :as protocols]))
 
+;; setup for talk
+
 ;; with cursor in this file, run M-x cider-jack-in-clojurescript
 
+;; open http://localhost:3449 in chrome
+
+;; maximize chrome
+
+;; bump font size on this and repl
+
+;; full screen emacs
+
+;; navigate to clj-block
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; immutable performance
 
 (defn timed [f]
   (let [t0 (.now js/performance)]
@@ -26,6 +39,8 @@
   (map (fn [n] (timed #(copy-100 n)))
        (take k (iterate (fn [x] (* x m)) 10))))
 
+;; Results
+;;
 ;; js copy 5, 10
 ;; [ 0, 0, 0, 1, 8, 50, 298, 1419, 5547, 29524 ]
 
@@ -39,9 +54,7 @@
 
 (defonce state
   (reagent/atom
-   {:page 0
-    :repls {:vectors {:input (str [1 2 3 4])}}
-    :input (str '(+ 1 9))}))
+   {:page 0}))
 
 (def style
   (merge
@@ -54,10 +67,13 @@
     }))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Bullet Slide
 
 (defn render-bullet [index cand-bullet num-visible]
   [:li {:class "jobim-li"
-        :style (if (<= num-visible index) {:visibility "hidden"} {})}
+        :style (if (<= num-visible index)
+                 {:visibility "hidden"}
+                 {})}
    cand-bullet])
 
 (defn render-bullets [bullets num-visible list-style-type]
@@ -65,11 +81,11 @@
               :style {:list-style-type list-style-type}}]
         (map-indexed #(render-bullet %1 %2 num-visible)) bullets))
 
-(defrecord MySlide [title bullets opts]
+(defrecord BulletSlide [title bullets opts]
   protocols/Slide
 
   (render-slide [this state]
-    (let [bullet-no (get-in state [:custom title] 0)
+    (let [bullet-no  (get-in state [:slides title] 0)
           list-style (get opts :list-style-type "circle")]
       [:div
        [:h3 {:style {:text-align "center"}
@@ -78,21 +94,30 @@
        (render-bullets bullets bullet-no list-style)]))
 
   (next-slide [this state]
-    (let [bullet-no (get-in state [:custom title] 0)]
+    (let [bullet-no (get-in state [:slides title] 0)]
       (if (= bullet-no (count bullets))
         (protocols/std-next this state)
-        (update-in state [:custom title] inc))))
+        (update-in state [:slides title] inc))))
 
   (prev-slide [this state]
-    (let [bullet-no (get-in state [:custom title] 0)]
+    (let [bullet-no (get-in state [:slides title] 0)]
       (if (= bullet-no 0)
         (protocols/std-prev this state)
-        (update-in state [:custom title] dec)))))
+        (update-in state [:slides title] dec)))))
 
-(defn my-bullets [title bullets opts]
-  (->MySlide title bullets opts))
+(defn bullet-slide [title bullets opts]
+  (->BulletSlide title bullets opts))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Code Blocks
+
+(defn pprint-clj [s]
+  (with-out-str (pprint s {:width 40})))
+
+(defn highlight-block [lang s]
+  (str "<pre><code>"
+       (.-value (js/hljs.highlight lang s))
+       "</code></pre>"))
 
 (defn js-block [js-string]
   [:pre
@@ -100,39 +125,35 @@
     {:class "javascript"
      :style {:font-size "1.2em"}
      :dangerouslySetInnerHTML
-     #js{:__html (str "<pre><code>"
-                      (.-value (js/hljs.highlight "javascript" js-string))
-                      "</code></pre>")}}]])
+     #js{:__html (highlight-block "javascript" js-string)}}]])
+
+(defn render-clj-and-result [code result]
+  (let [result-s (if result
+                   (str " ;; => " (pprint-clj result))
+                   "")
+        code-s (apply str (drop-last (pprint-clj code)))]
+    (str code-s result-s)))
 
 (defn clj-line [code & [result]]
   [:div
-   {:style {:text-align "left"
-            :font-size "1.2em"
+   {:style {:text-align     "left"
+            :font-size      "1.2em"
             :padding-bottom "10px"}}
    [:pre
     [:code
      {:class "clj"
       :dangerouslySetInnerHTML
-      #js{:__html (str "<pre><code>"
-                       (let [result-s (if result (str " ;; => " (with-out-str (pprint result {:width 40}))) "")
-                             main (apply str (drop-last (with-out-str (pprint code {:width 40}))))]
-                         (.-value (js/hljs.highlight "clj" (str main result-s))))
-                       "</code></pre>")}}]]])
+      #js{:__html (highlight-block "clj" (render-clj-and-result code result))}}]]])
 
 (defn clj-block [codes]
-  [:div
-   {:style {:text-align "left"
-            :font-size "1.2em"
-            :padding-bottom "10px"}}
+  [:div {:style {:text-align     "left"
+                 :font-size      "1.2em"
+                 :padding-bottom "10px"}}
    (for [[s i] (zipmap codes (range (count codes)))]
      [:pre
       [:code
-       {:class "clj"
-        :dangerouslySetInnerHTML
-        #js{:__html (str "<pre><code>"
-                         (do (prn s)
-                             (.-value (js/hljs.highlight "clj" (with-out-str (pprint s {:width 40})))))
-                         "</code></pre>")}}]])])
+       {:class                   "clj"
+        :dangerouslySetInnerHTML #js{:__html (highlight-block "clj" (pprint-clj s))}}]])])
 
 (defn compare-page [block1 block2]
   (jobim/text
@@ -157,7 +178,7 @@
     [:p "Anthony Marcar"]
     [:p "@moocar"]])
 
-  (my-bullets
+  (bullet-slide
    "Clojure"
    ["Released 2007"
     "It's a Lisp"
@@ -167,7 +188,7 @@
     "Targets the JVM"]
    {})
 
-  (my-bullets
+  (bullet-slide
    "Clojurescript"
    ["Released 2012"
     "Same language as Clojure, but"
@@ -195,7 +216,7 @@
    (js-block "foo.bar(\"baz\")")
    (clj-block ['(.bar foo "baz")]))
 
-  (my-bullets
+  (bullet-slide
    "Symbols"
    [(clj-block ['(def a?9-3+l "foobar")])
     (clj-block ['(def some-long-name "blah blah blah")])
@@ -205,7 +226,7 @@
 
   (jobim/text "Datastructures")
 
-  (my-bullets
+  (bullet-slide
    "Vectors"
    ["Like js arrays. Fast random access"
     [:br]
@@ -215,7 +236,7 @@
     (clj-line '(conj v "bar") '[1 5.6 "foo" "bar"])]
    {:list-style-type "none"})
 
-  (my-bullets
+  (bullet-slide
    "Lists"
    ["Singly-linked lists"
     [:br]
@@ -228,7 +249,7 @@
     ]
    {:list-style-type "none"})
 
-  (my-bullets
+  (bullet-slide
    "Maps"
    ["Like js Maps. unordered"
     [:br]
@@ -240,7 +261,7 @@
     (clj-line '(map :a ms) '(1 2 3))]
    {:list-style-type "none"})
 
-  (my-bullets
+  (bullet-slide
    "Sets"
    ["Like js Sets but unordered"
     [:br]
@@ -252,7 +273,7 @@
     (clj-line '(filter #{1 2} [0 1 2 3]) '(1 2))]
    {:list-style-type "none"})
 
-  (my-bullets
+  (bullet-slide
    "Immutability"
    ["Everything is a value"
     "Calling functions is safe"
@@ -261,7 +282,7 @@
     "So how do I get shit done?"]
    {})
 
-  (my-bullets
+  (bullet-slide
    "Atoms (like Redux)"
    [(clj-line '(def a (atom 1)))
     (clj-line '(reset! a 5) '5)
@@ -271,7 +292,7 @@
     (clj-line '(swap! a (fn [x] (* x x))) '36)]
    {})
 
-  (my-bullets
+  (bullet-slide
    "Isn't Immutability slow?"
    ["No"
     "Because Shared-persistent datastructures"]
@@ -313,12 +334,14 @@
    "/img/js-vs-cljs-vector-performance-with-js-copy.svg"
    "")
 
-  (my-bullets
+  (bullet-slide
    "Equality"
-   ["42 === 42, \"foo\" === \"foo\" "
+   ["42 === 42, \"foo\" === \"foo\""
     [:s "{a: 1} === {a: 1}"]
-    (clj-line '(= {:a 1} {:a 2}) 'true)]
-   {})
+    (clj-line '(= {:a 1} {:a 2}) 'true)
+    [:span [:br]
+     "O(1) Deep Equality checks"]]
+   {:list-style-type "none"})
 
   (jobim/pseudo-clj
    40
@@ -327,4 +350,52 @@
       :orderId    "o1"})
    (def m {my-key "someVal"})
    (get m my-key))
+
+  (bullet-slide
+   "Clojurescript ♥ React"
+   ["React is data => UI"
+    "Functional"
+    "Auto shouldComponentUpdate"
+    "Better Performance than React"]
+   {})
+
+  (jobim/bullets
+   "React Frameworks"
+   ["reagent"
+    "reframe"
+    "om"
+    "fulcro"
+    "rum"
+    "quiescent"])
+
+  (jobim/text "Bundle Size")
+
+  (jobim/captioned-img
+   "/img/web-framework-size-comparison.png"
+   "https://www.freecodecamp.org/news/a-realworld-comparison-of-front-end-frameworks-with-benchmarks-2019-update-4be0d3c78075/")
+
+  (jobim/captioned-img
+   "/img/web-framework-loc-comparison.png"
+   "https://www.freecodecamp.org/news/a-realworld-comparison-of-front-end-frameworks-with-benchmarks-2019-update-4be0d3c78075/")
+
+  (bullet-slide
+   "Use clojurescript if"
+   ["You're building complex webapps (not sites)"
+    "Hate boilerplate"
+    "Insanely fast feedback loop, yeah!"
+    "Lots of data processing"
+    "Favor stability"]
+   {})
+
+  (jobim/text "the-end))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+)))))))))))))))))))))))
+")
 )
